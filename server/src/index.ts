@@ -21,7 +21,16 @@ const campaigns = new CampaignStore({
 });
 const app = createApp({ config, campaigns, clientDir: path.join(ROOT_DIR, "client", "dist") });
 
-const server = app.listen(config.port, config.host, () => {
+// Express 5 calls this with the error if the server can't start (e.g. the port is taken).
+app.listen(config.port, config.host, (err?: NodeJS.ErrnoException) => {
+  if (err) {
+    console.error(
+      err.code === "EADDRINUSE"
+        ? `Port ${config.port} is already in use. Close the other program or set PORT=... in .env.`
+        : err,
+    );
+    process.exit(1);
+  }
   console.log(`\n  SMS Simulator is running → http://localhost:${config.port}\n`);
   console.log(
     config.msg91AuthKey
@@ -29,13 +38,4 @@ const server = app.listen(config.port, config.host, () => {
       : "  Live mode: off. Add MSG91_AUTH_KEY to .env to send real SMS. Simulate mode works now.",
   );
   console.log(`  Reports are saved in ${config.reportsDir}\n`);
-});
-
-server.on("error", (err: NodeJS.ErrnoException) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`Port ${config.port} is already in use. Close the other program or set PORT=... in .env.`);
-  } else {
-    console.error(err);
-  }
-  process.exit(1);
 });
