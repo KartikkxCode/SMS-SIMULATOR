@@ -16,7 +16,8 @@
     "build": "npm run build -w client && npm run build -w server",
     "start": "npm start -w server",
     "test": "npm test --workspaces",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "coverage": "npm run coverage --workspaces"
   },
   "devDependencies": {
     "concurrently": "^10.0.6"
