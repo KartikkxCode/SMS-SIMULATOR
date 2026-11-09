@@ -21,7 +21,58 @@ const envSchema = z.object({
   // Extra host names allowed in the Host header, comma separated (localhost is always allowed).
   ALLOWED_HOSTS: z.string().default(""),
   REPORTS_DIR: z.string().default(path.join(ROOT_DIR, "reports")),
+  DATA_DIR: z.string().default(path.join(ROOT_DIR, "data")),
+
+  // WhatsApp through Meta's Cloud API
+  WHATSAPP_META_TOKEN: z.string().trim().default(""),
+  WHATSAPP_META_PHONE_NUMBER_ID: z.string().trim().default(""),
+  WHATSAPP_META_WABA_ID: z.string().trim().default(""),
+  WHATSAPP_META_API_VERSION: z
+    .string()
+    .trim()
+    .regex(/^v\d+\.\d+$/, "WHATSAPP_META_API_VERSION looks like v26.0")
+    .default("v26.0"),
+  WHATSAPP_META_API_URL: z.url().default("https://graph.facebook.com"),
+  WHATSAPP_META_APP_SECRET: z.string().trim().default(""),
+  WHATSAPP_MARKETING_ENDPOINT: z.enum(["auto", "messages", "marketing_messages"]).default("auto"),
+  // WhatsApp through MSG91 (uses MSG91_AUTH_KEY)
+  MSG91_WHATSAPP_NUMBER: z.string().trim().regex(/^\d*$/, "MSG91_WHATSAPP_NUMBER must be digits only, e.g. 919876543210").default(""),
+  MSG91_WHATSAPP_API_URL: z.url().default("https://api.msg91.com/api/v5/whatsapp"),
+  WHATSAPP_MSG91_CHUNK: z.coerce.number().int().min(1).max(1000).default(100),
+  // Sending limits
+  WHATSAPP_RATE_PER_SEC: z.coerce.number().min(0.1).max(80).default(20),
+  WHATSAPP_DAILY_LIMIT: z.coerce.number().int().min(0).default(250),
+  WHATSAPP_PRICE_PER_MESSAGE: z.coerce.number().min(0).optional(),
+  // Delivery receipts (optional)
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().trim().default(""),
+  PUBLIC_WEBHOOK_HOST: z.string().trim().toLowerCase().default(""),
+  // Simulate mode: fake some errors, e.g. "131026:0.05,130429:0.02"
+  WHATSAPP_SIMULATE_ERRORS: z
+    .string()
+    .trim()
+    .regex(/^(\d+:(0|1|0?\.\d+)(,\d+:(0|1|0?\.\d+))*)?$/, "WHATSAPP_SIMULATE_ERRORS looks like 131026:0.05,130429:0.02")
+    .default(""),
 });
+
+export type WhatsAppConfig = {
+  meta: {
+    token: string;
+    phoneNumberId: string;
+    wabaId: string;
+    apiVersion: string;
+    apiUrl: string;
+    appSecret: string;
+    marketingEndpoint: "auto" | "messages" | "marketing_messages";
+  };
+  msg91: { authKey: string; integratedNumber: string; apiUrl: string; chunkSize: number };
+  ratePerSec: number;
+  /** Unique contacts per 24 hours; 0 means no limit. */
+  dailyLimit: number;
+  pricePerMessage?: number;
+  webhookVerifyToken: string;
+  publicWebhookHost: string;
+  simulateErrors: Array<{ code: number; rate: number }>;
+};
 
 export type Config = {
   msg91AuthKey: string;
@@ -34,6 +85,8 @@ export type Config = {
   host: string;
   allowedHosts: string[];
   reportsDir: string;
+  dataDir: string;
+  whatsapp: WhatsAppConfig;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -54,6 +107,35 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     host: e.HOST,
     allowedHosts: e.ALLOWED_HOSTS.split(",").map((h) => h.trim().toLowerCase()).filter(Boolean),
     reportsDir: path.resolve(e.REPORTS_DIR),
+    dataDir: path.resolve(e.DATA_DIR),
+    whatsapp: {
+      meta: {
+        token: e.WHATSAPP_META_TOKEN,
+        phoneNumberId: e.WHATSAPP_META_PHONE_NUMBER_ID,
+        wabaId: e.WHATSAPP_META_WABA_ID,
+        apiVersion: e.WHATSAPP_META_API_VERSION,
+        apiUrl: e.WHATSAPP_META_API_URL.replace(/\/+$/, ""),
+        appSecret: e.WHATSAPP_META_APP_SECRET,
+        marketingEndpoint: e.WHATSAPP_MARKETING_ENDPOINT,
+      },
+      msg91: {
+        authKey: e.MSG91_AUTH_KEY,
+        integratedNumber: e.MSG91_WHATSAPP_NUMBER,
+        apiUrl: e.MSG91_WHATSAPP_API_URL.replace(/\/+$/, ""),
+        chunkSize: e.WHATSAPP_MSG91_CHUNK,
+      },
+      ratePerSec: e.WHATSAPP_RATE_PER_SEC,
+      dailyLimit: e.WHATSAPP_DAILY_LIMIT,
+      pricePerMessage: e.WHATSAPP_PRICE_PER_MESSAGE,
+      webhookVerifyToken: e.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+      publicWebhookHost: e.PUBLIC_WEBHOOK_HOST,
+      simulateErrors: e.WHATSAPP_SIMULATE_ERRORS
+        ? e.WHATSAPP_SIMULATE_ERRORS.split(",").map((pair) => {
+            const [code, rate] = pair.split(":");
+            return { code: Number(code), rate: Number(rate) };
+          })
+        : [],
+    },
   };
 }
 
