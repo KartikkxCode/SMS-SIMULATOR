@@ -66,29 +66,36 @@ export function validSignature(raw: Buffer, header: string | undefined, secret: 
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
+/** Items of `value` that are objects, or nothing if it isn't a list (Meta's shape can change; never crash on it). */
+function objects<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value.filter((v): v is T => typeof v === "object" && v !== null) : [];
+}
+
 export function applyWebhook(body: WebhookBody, ledger: WaLedger, store: WaCampaignStore): void {
-  for (const entry of body.entry ?? []) {
-    for (const change of entry.changes ?? []) {
-      const value = change.value ?? {};
-      for (const s of value.statuses ?? []) {
-        if (!s.id || !s.status) continue;
-        const code = s.errors?.[0]?.code;
-        ledger.recordStatus(s.id, s.status, code);
+  for (const entry of objects<NonNullable<WebhookBody["entry"]>[number]>(body?.entry)) {
+    for (const change of objects<NonNullable<typeof entry.changes>[number]>(entry.changes)) {
+      const value = typeof change.value === "object" && change.value !== null ? change.value : {};
+      for (const s of objects<StatusUpdate>(value.statuses)) {
+        if (typeof s.id !== "string" || typeof s.status !== "string") continue;
+        const code = objects<{ code?: number; title?: string }>(s.errors)[0]?.code;
+        ledger.recordStatus(s.id, s.status, typeof code === "number" ? code : undefined);
         const recipient = store.findByMessageId(s.id);
         if (!recipient) continue;
         // Receipts can arrive out of order: never move back from "read" to "delivered".
         if (s.status === "failed") {
           recipient.delivery = "failed";
-          const explanation = code !== undefined ? META_ERRORS[code]?.explanation : undefined;
-          recipient.reason = `Delivery failed${code !== undefined ? ` (${code})` : ""}: ${explanation ?? s.errors?.[0]?.title ?? "no reason given"}`;
-          recipient.errorCode = code;
+          const explanation = typeof code === "number" ? META_ERRORS[code]?.explanation : undefined;
+          const title = objects<{ title?: string }>(s.errors)[0]?.title;
+          recipient.reason = `Delivery failed${code !== undefined ? ` (${code})` : ""}: ${explanation ?? title ?? "no reason given"}`;
+          recipient.errorCode = typeof code === "number" ? code : undefined;
         } else if ((RANK[s.status] ?? 0) > (RANK[recipient.delivery ?? ""] ?? 0) && recipient.delivery !== "failed") {
           recipient.delivery = s.status;
         }
       }
-      for (const m of value.messages ?? []) {
-        const text = (m.text?.body ?? m.button?.text ?? "").trim().toLowerCase();
-        if (m.from && STOP_WORDS.has(text)) ledger.addOptOut(m.from);
+      for (const m of objects<InboundMessage>(value.messages)) {
+        const raw = m.text?.body ?? m.button?.text;
+        const text = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+        if (typeof m.from === "string" && STOP_WORDS.has(text)) ledger.addOptOut(m.from);
       }
     }
   }
