@@ -117,6 +117,10 @@ describe("WhatsApp API", () => {
   it("accepts a template typed in by hand", async () => {
     const { app, upload } = await setup();
     const manual = { name: "promo", language: "hi", category: "MARKETING", headerFormat: "NONE", body: "नमस्ते {{1}}" };
+    const built = await request(app).post("/api/whatsapp/templates/manual").send(manual);
+    expect(built.body).toMatchObject({ ref: "promo|hi", params: [{ key: "body.1" }], supported: true });
+    const badName = await request(app).post("/api/whatsapp/templates/manual").send({ ...manual, name: "Promo Offer" });
+    expect(badName.body.error).toMatch(/^name: Template names use lowercase/);
     const res = await request(app)
       .post("/api/whatsapp/preflight")
       .send(base(await upload(), { template: { manual }, mapping: { "body.1": { column: 0 } } }));

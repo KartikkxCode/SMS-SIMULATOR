@@ -40,10 +40,10 @@ export function App() {
       </header>
 
       {/* Both stay mounted so switching channels keeps each one's progress. */}
-      <div hidden={channel !== "sms"}>
+      <div hidden={channel !== "sms"} data-channel="sms">
         <SmsWizard />
       </div>
-      <div hidden={channel !== "whatsapp"}>
+      <div hidden={channel !== "whatsapp"} data-channel="whatsapp">
         <WhatsAppWizard />
       </div>
 

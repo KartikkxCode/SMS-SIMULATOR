@@ -5,7 +5,6 @@ import { toCsv } from "../services/csv.js";
 import type { CampaignStatus } from "../services/campaignRunner.js";
 import { WaApiError, type ErrorAction } from "./errors.js";
 import type { WaLedger } from "./ledger.js";
-import { paramLabel } from "./params.js";
 import type { ItemResult, WaProvider } from "./providers/types.js";
 import { RateLimiter, realClock, type Clock } from "./rateLimiter.js";
 import type { WaMedia, WaMode, WaProviderId, WaTemplate } from "./types.js";
@@ -347,9 +346,15 @@ export function errorSummary(campaign: WaCampaign) {
   return [...groups.values()].sort((a, b) => b.count - a.count);
 }
 
+/** Short column names for template values in the report: {{1}}, header {{1}}, link button {{1}}, coupon code. */
+function reportColumn(p: WaTemplate["params"][number]): string {
+  if (p.component === "button") return p.buttonType === "COPY_CODE" ? "coupon code" : `link button {{${p.name}}}`;
+  return p.component === "header" ? `header {{${p.name}}}` : `{{${p.name}}}`;
+}
+
 export function waReportCsv(campaign: WaCampaign): string {
   const params = campaign.template.params;
-  const header = ["file_row", "number", "status", "reason", "message_id", "error_code", "attempts", "time", "delivery", ...params.map(paramLabel)];
+  const header = ["file_row", "number", "status", "reason", "message_id", "error_code", "attempts", "time", "delivery", ...params.map(reportColumn)];
   const rows = campaign.recipients.map((r) => [
     r.row,
     r.number,

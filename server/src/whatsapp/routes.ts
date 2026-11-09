@@ -154,6 +154,11 @@ export function whatsappRouter(config: Config, uploads: UploadStore, deps: Whats
     }
   });
 
+  /** Turns a typed-in template into the same shape as listed ones, so the app knows its variables. */
+  router.post("/templates/manual", (req, res) => {
+    res.json(manualTemplate(manualSchema.parse(req.body ?? {})));
+  });
+
   router.post("/media", upload.single("file"), (req, res) => {
     if (!req.file) throw new HttpError(400, "Choose an image or PDF to upload.");
     const saved = media.addFile(req.file.buffer, req.file.originalname);
