@@ -87,6 +87,13 @@ export const api = {
     return call<UploadInfo>("/api/upload", { method: "POST", body: form });
   },
 
+  uploadManual: (contacts: Array<{ name: string; phone: string }>) =>
+    call<UploadInfo>("/api/upload/manual", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ contacts }),
+    }),
+
   contacts: (uploadId: string, column: number) =>
     call<ContactSummary>(`/api/uploads/${uploadId}/contacts?column=${column}`),
 

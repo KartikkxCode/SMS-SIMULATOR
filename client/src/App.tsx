@@ -22,7 +22,7 @@ export function App() {
           <img src="/favicon.svg" alt="" width={28} height={28} />
           <div>
             <h1>SMS Simulator</h1>
-            <p>Send one message to every contact in a CSV or Excel file.</p>
+            <p>Send one message to every contact in a file or a typed list.</p>
           </div>
         </div>
         <nav className="channel-switch" aria-label="Channel">

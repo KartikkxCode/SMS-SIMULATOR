@@ -377,6 +377,54 @@ textarea {
   min-width: 0;
 }
 
+.segmented {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 4px 0 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.segmented button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 14px;
+  min-height: 36px;
+  cursor: pointer;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  outline: 1px solid var(--border);
+}
+.segmented button:focus-visible {
+  outline: 2px solid var(--primary);
+}
+.typed-rows {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  max-height: 420px;
+  overflow: auto;
+}
+.typed-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px;
+  gap: 6px;
+  align-items: center;
+}
+.typed-head {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .dropzone {
   display: flex;
   flex-direction: column;

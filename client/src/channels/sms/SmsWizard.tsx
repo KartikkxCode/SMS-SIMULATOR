@@ -6,7 +6,7 @@ import { UploadStep } from "../../steps/Upload.tsx";
 import { ComposeStep, type Compose } from "./Compose.tsx";
 import { SendStep } from "./Send.tsx";
 
-const STEPS = ["Upload file", "Check contacts", "Write message", "Send"] as const;
+const STEPS = ["Add contacts", "Check contacts", "Write message", "Send"] as const;
 
 export function SmsWizard() {
   const [config, setConfig] = useState<AppConfig | null>(null);

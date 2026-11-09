@@ -8,7 +8,7 @@ import { PersonalizeStep, guessMapping } from "./PersonalizeStep.tsx";
 import { TemplateStep } from "./TemplateStep.tsx";
 import { WaSendStep } from "./WaSendStep.tsx";
 
-const STEPS = ["Upload file", "Check contacts", "Template", "Personalize", "Send"] as const;
+const STEPS = ["Add contacts", "Check contacts", "Template", "Personalize", "Send"] as const;
 
 export function WhatsAppWizard() {
   const [config, setConfig] = useState<WaConfig | null>(null);

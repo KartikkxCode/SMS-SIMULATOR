@@ -32,7 +32,8 @@ export function createApp({ config, campaigns, uploads = new UploadStore(), prov
   app.use(hostCheck(config.allowedHosts, config.whatsapp.publicWebhookHost));
   // Before express.json: the webhook checks Meta's signature over the raw body.
   if (whatsapp) app.use(webhookRouter(config.whatsapp, whatsapp.ledger, whatsapp.store));
-  app.use(express.json({ limit: "100kb" }));
+  // Room for up to 1,000 typed contacts.
+  app.use(express.json({ limit: "256kb" }));
 
   const api = express.Router();
   api.get("/config", (_req, res) => {

@@ -148,4 +148,57 @@ describe("API", () => {
     const ok = await request(app).get("/api/config").set("Host", "localhost:3000");
     expect(ok.status).toBe(200);
   });
+
+  it("accepts typed contacts and checks them like a file", async () => {
+    const { app, campaigns } = setup();
+    const contacts = [
+      { name: " Asha ", phone: "98765 43210" },
+      { name: "", phone: "" },
+      { name: "Ravi", phone: "12345" },
+      { phone: "+91 91234 56789" },
+      { name: "Asha again", phone: "9876543210" },
+    ];
+    const up = await request(app).post("/api/upload/manual").send({ contacts });
+    expect(up.status).toBe(200);
+    expect(up.body).toMatchObject({
+      fileName: "Typed contacts (4)",
+      columns: ["Name", "Phone"],
+      rowCount: 4,
+      phoneColumn: 1,
+      preview: [
+        ["Asha", "98765 43210"],
+        ["Ravi", "12345"],
+        ["", "+91 91234 56789"],
+        ["Asha again", "9876543210"],
+      ],
+    });
+
+    const check = await request(app).get(`/api/uploads/${up.body.uploadId}/contacts?column=1`);
+    expect(check.body).toMatchObject({ validCount: 2, invalidCount: 1, duplicateCount: 1 });
+    expect(check.body.invalid[0]).toMatchObject({ row: 2, value: "12345" });
+    expect(check.body.duplicates[0]).toMatchObject({ row: 4, firstRow: 1 });
+
+    const start = await request(app).post("/api/campaigns").send({ uploadId: up.body.uploadId, column: 1, mode: "simulate" });
+    await campaigns.waitFor(start.body.id);
+    expect((await request(app).get(`/api/campaigns/${start.body.id}`)).body.counts).toMatchObject({ total: 2, submitted: 2 });
+  });
+
+  it("explains problems with typed contacts", async () => {
+    const { app } = setup();
+    const send = (body: unknown) => request(app).post("/api/upload/manual").send(body as object);
+    expect((await send({ contacts: [] })).body.error).toBe("contacts: Add at least one number.");
+    expect((await send({ contacts: [{ name: " ", phone: "" }] })).body.error).toBe("Add at least one number.");
+    const tooMany = Array.from({ length: 1001 }, () => ({ name: "A", phone: "9876543210" }));
+    expect((await send({ contacts: tooMany })).body.error).toMatch(/up to 1000 contacts\. For more, upload a file/);
+    expect((await send({ contacts: [{ phone: "9".repeat(31) }] })).status).toBe(400);
+    expect((await send({})).status).toBe(400);
+  });
+
+  it("accepts the largest typed list allowed", async () => {
+    const { app } = setup();
+    const contacts = Array.from({ length: 1000 }, (_, i) => ({ name: "N".repeat(100), phone: `98765${String(i).padStart(5, "0")}` }));
+    const up = await request(app).post("/api/upload/manual").send({ contacts });
+    expect(up.status).toBe(200);
+    expect(up.body.rowCount).toBe(1000);
+  });
 });
