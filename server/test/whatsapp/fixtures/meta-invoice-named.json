@@ -1,0 +1,20 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "919123456789",
+  "type": "template",
+  "template": {
+    "name": "invoice_ready",
+    "language": { "code": "en" },
+    "components": [
+      { "type": "header", "parameters": [{ "type": "document", "document": { "id": "998877", "filename": "invoice.pdf" } }] },
+      {
+        "type": "body",
+        "parameters": [
+          { "type": "text", "parameter_name": "customer_name", "text": "Meera" },
+          { "type": "text", "parameter_name": "amount", "text": "₹1,250" }
+        ]
+      }
+    ]
+  }
+}

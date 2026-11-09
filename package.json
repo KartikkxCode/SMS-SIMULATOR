@@ -1,0 +1,27 @@
+{
+  "name": "sms-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Send one SMS to every contact in a CSV or Excel file through MSG91, with a free Simulate mode.",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "npm start -w server",
+    "test": "npm test --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}
