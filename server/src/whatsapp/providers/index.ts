@@ -9,6 +9,7 @@ import type { FetchLike, PhoneInfo, WaProvider } from "./types.js";
 
 const TEMPLATE_CACHE_MS = 60_000;
 const PHONE_INFO_CACHE_MS = 5 * 60_000;
+const PHONE_ERROR_CACHE_MS = 60_000;
 
 export type TemplateList = { source: WaProviderId | "demo"; templates: WaTemplate[] };
 
@@ -16,7 +17,7 @@ export type TemplateList = { source: WaProviderId | "demo"; templates: WaTemplat
 export class WaProviders {
   private readonly live: Partial<Record<WaProviderId, WaProvider>> = {};
   private readonly templateCache = new Map<WaProviderId, { at: number; list: TemplateList }>();
-  private phoneCache?: { at: number; info: PhoneInfo };
+  private phoneCache?: { at: number; info?: PhoneInfo; error?: unknown };
 
   constructor(
     private readonly config: WhatsAppConfig,
@@ -70,9 +71,19 @@ export class WaProviders {
   async phoneInfo(): Promise<PhoneInfo | undefined> {
     const meta = this.live.meta;
     if (!meta?.phoneInfo) return undefined;
-    if (this.phoneCache && Date.now() - this.phoneCache.at < PHONE_INFO_CACHE_MS) return this.phoneCache.info;
-    const info = await meta.phoneInfo();
-    this.phoneCache = { at: Date.now(), info };
-    return info;
+    const cached = this.phoneCache;
+    if (cached && Date.now() - cached.at < (cached.error ? PHONE_ERROR_CACHE_MS : PHONE_INFO_CACHE_MS)) {
+      if (cached.error) throw cached.error;
+      return cached.info;
+    }
+    try {
+      const info = await meta.phoneInfo();
+      this.phoneCache = { at: Date.now(), info };
+      return info;
+    } catch (error) {
+      // Remember failures briefly too, so a Meta outage doesn't slow down every contact check.
+      this.phoneCache = { at: Date.now(), error };
+      throw error;
+    }
   }
 }

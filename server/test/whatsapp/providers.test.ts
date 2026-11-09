@@ -266,6 +266,16 @@ describe("WaProviders", () => {
     expect(() => providers.get("msg91", "live")).toThrow(/MSG91_WHATSAPP_NUMBER/);
   });
 
+  it("remembers a failed number lookup for a minute", async () => {
+    const down = Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } });
+    const { calls, fetchImpl } = scriptedFetch([down, down]);
+    const config = loadConfig({ WHATSAPP_META_TOKEN: "t", WHATSAPP_META_PHONE_NUMBER_ID: "p", WHATSAPP_META_WABA_ID: "w" }).whatsapp;
+    const providers = new WaProviders(config, fetchImpl);
+    await expect(providers.phoneInfo()).rejects.toThrow(/Couldn't reach/);
+    await expect(providers.phoneInfo()).rejects.toThrow(/Couldn't reach/);
+    expect(calls).toHaveLength(1);
+  });
+
   it("caches the real template list for a minute", async () => {
     const { calls, fetchImpl } = scriptedFetch([{ body: { data: [] } }, { body: { data: [] } }]);
     const config = loadConfig({ WHATSAPP_META_TOKEN: "t", WHATSAPP_META_PHONE_NUMBER_ID: "p", WHATSAPP_META_WABA_ID: "w" }).whatsapp;

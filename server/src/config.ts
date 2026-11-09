@@ -90,7 +90,9 @@ export type Config = {
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = envSchema.safeParse(env);
+  // A blank line like `WHATSAPP_DAILY_LIMIT=` means "use the default", not 0.
+  const given = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v.trim() !== ""));
+  const parsed = envSchema.safeParse(given);
   if (!parsed.success) {
     const problems = parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n");
     throw new Error(`Invalid settings in .env:\n${problems}`);
