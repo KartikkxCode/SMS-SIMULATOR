@@ -7,17 +7,21 @@ import { campaignsRouter } from "./routes/campaigns.js";
 import { UploadStore, uploadsRouter } from "./routes/uploads.js";
 import type { CampaignStore } from "./services/campaignRunner.js";
 import { Msg91Provider, SimulatedProvider, type SendMode, type SmsProvider } from "./services/sms.js";
+import { whatsappRouter, type WhatsAppDeps } from "./whatsapp/routes.js";
+import { webhookRouter } from "./whatsapp/webhook.js";
 
 export type AppDeps = {
   config: Config;
   campaigns: CampaignStore;
   uploads?: UploadStore;
   providerFor?: (mode: SendMode) => SmsProvider;
+  /** WhatsApp channel; its routes are only mounted when given. */
+  whatsapp?: WhatsAppDeps;
   /** Built React app to serve (client/dist). Skipped if it doesn't exist, e.g. during `npm run dev`. */
   clientDir?: string;
 };
 
-export function createApp({ config, campaigns, uploads = new UploadStore(), providerFor, clientDir }: AppDeps): Express {
+export function createApp({ config, campaigns, uploads = new UploadStore(), providerFor, clientDir, whatsapp }: AppDeps): Express {
   const provider =
     providerFor ??
     ((mode: SendMode) =>
@@ -25,7 +29,9 @@ export function createApp({ config, campaigns, uploads = new UploadStore(), prov
 
   const app = express();
   app.disable("x-powered-by");
-  app.use(hostCheck(config.allowedHosts));
+  app.use(hostCheck(config.allowedHosts, config.whatsapp.publicWebhookHost));
+  // Before express.json: the webhook checks Meta's signature over the raw body.
+  if (whatsapp) app.use(webhookRouter(config.whatsapp, whatsapp.ledger, whatsapp.store));
   app.use(express.json({ limit: "100kb" }));
 
   const api = express.Router();
@@ -39,6 +45,7 @@ export function createApp({ config, campaigns, uploads = new UploadStore(), prov
   });
   api.use(uploadsRouter(uploads, config));
   api.use(campaignsRouter(campaigns, uploads, config, provider));
+  if (whatsapp) api.use("/whatsapp", whatsappRouter(config, uploads, whatsapp));
   api.use((_req, res) => {
     res.status(404).json({ error: "Unknown API route." });
   });
@@ -47,7 +54,7 @@ export function createApp({ config, campaigns, uploads = new UploadStore(), prov
   const indexFile = clientDir && path.join(clientDir, "index.html");
   if (clientDir && indexFile && existsSync(indexFile)) {
     app.use(express.static(clientDir));
-    app.use((req, res, next) => (req.method === "GET" ? res.sendFile(indexFile) : next()));
+    app.use((req, res, next) => (req.method === "GET" && !req.path.startsWith("/webhooks/") ? res.sendFile(indexFile) : next()));
   }
 
   app.use(errorHandler);

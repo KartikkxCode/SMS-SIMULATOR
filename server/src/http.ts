@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from "express";
 import multer from "multer";
 import { ZodError } from "zod";
 import { FileFormatError } from "./services/parseContacts.js";
+import { WaApiError } from "./whatsapp/errors.js";
 
 export class HttpError extends Error {
   constructor(
@@ -16,11 +17,13 @@ export class HttpError extends Error {
  * Only answers requests addressed to this computer. This stops a web page on another site
  * from pointing its own domain at 127.0.0.1 (DNS rebinding) and sending SMS on your account.
  */
-export function hostCheck(extraHosts: string[]): RequestHandler {
+export function hostCheck(extraHosts: string[], webhookHost = ""): RequestHandler {
   const allowed = new Set(["localhost", "127.0.0.1", "[::1]", ...extraHosts]);
   return (req, res, next) => {
     const host = (req.headers.host ?? "").toLowerCase().replace(/:\d+$/, "");
     if (allowed.has(host)) return next();
+    // A public tunnel address (for WhatsApp delivery receipts) may reach the signed webhook and nothing else.
+    if (webhookHost && host === webhookHost && req.path.startsWith("/webhooks/")) return next();
     res
       .status(403)
       .type("text/plain")
@@ -35,6 +38,8 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     const issue = err.issues[0];
     const where = issue?.path.length ? `${issue.path.join(".")}: ` : "";
     res.status(400).json({ error: `${where}${issue?.message ?? "Invalid request"}` });
+  } else if (err instanceof WaApiError) {
+    res.status(502).json({ error: err.message });
   } else if (err instanceof FileFormatError) {
     res.status(400).json({ error: err.message });
   } else if (err instanceof multer.MulterError) {
