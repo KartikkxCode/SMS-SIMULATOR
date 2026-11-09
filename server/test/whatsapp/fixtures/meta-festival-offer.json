@@ -1,0 +1,22 @@
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "919876543210",
+  "type": "template",
+  "template": {
+    "name": "festival_offer",
+    "language": { "code": "en" },
+    "components": [
+      { "type": "header", "parameters": [{ "type": "image", "image": { "id": "1234567890" } }] },
+      {
+        "type": "body",
+        "parameters": [
+          { "type": "text", "text": "Asha" },
+          { "type": "text", "text": "Diwali" },
+          { "type": "text", "text": "20%" }
+        ]
+      },
+      { "type": "button", "sub_type": "url", "index": "0", "parameters": [{ "type": "text", "text": "diwali" }] }
+    ]
+  }
+}

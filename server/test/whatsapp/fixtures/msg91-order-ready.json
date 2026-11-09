@@ -1,0 +1,30 @@
+{
+  "integrated_number": "919000000001",
+  "content_type": "template",
+  "payload": {
+    "messaging_product": "whatsapp",
+    "type": "template",
+    "template": {
+      "name": "order_ready",
+      "language": { "code": "en", "policy": "deterministic" },
+      "to_and_components": [
+        {
+          "to": ["919876543210"],
+          "components": {
+            "header_1": { "type": "text", "value": "#1042" },
+            "body_1": { "type": "text", "value": "Asha" },
+            "body_2": { "type": "text", "value": "Pune" }
+          }
+        },
+        {
+          "to": ["919123456789"],
+          "components": {
+            "header_1": { "type": "text", "value": "#1043" },
+            "body_1": { "type": "text", "value": "Ravi" },
+            "body_2": { "type": "text", "value": "Pune" }
+          }
+        }
+      ]
+    }
+  }
+}
