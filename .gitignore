@@ -5,3 +5,4 @@ reports/
 *.log
 .DS_Store
 coverage/
+data/
