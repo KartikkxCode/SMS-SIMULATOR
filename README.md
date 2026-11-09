@@ -66,7 +66,9 @@ MSG91 can't send free text, so you set this up once:
 
 ### Sending SMS
 
-1. **Upload file.** The first row must hold column names. Up to 5 MB and 50,000 rows.
+1. **Add contacts.** Either **Upload a file** (the first row must hold column names; up to 5 MB and 50,000 rows) or
+   **Type numbers**: enter names and mobile numbers in the list, or paste many at once (one per line, like
+   `Asha, 98765 43210`, or two columns copied from Excel). Up to 1,000 typed contacts.
 2. **Check contacts.** Choose the phone column (it's usually picked for you). Numbers can contain spaces, dashes, a
    leading `0`, `+91` or `91`; they're converted to the international format (`919876543210`). Invalid and duplicate
    rows are listed and can be downloaded. Each number gets the message once.
@@ -137,7 +139,8 @@ the name, language and text exactly from MSG91. The MSG91 request format lives i
 
 ### Sending WhatsApp messages
 
-1. **Upload file** and **Check contacts**: the same as for SMS.
+1. **Add contacts** (upload a file or type numbers) and **Check contacts**: the same as for SMS. Typed names can fill
+   `{{1}}`.
 2. **Template.** Choose **Meta Cloud API** or **MSG91 WhatsApp**, then pick an approved template. Templates the app
    can't send (video or location headers, carousels, one-time-password templates, not yet approved) are greyed out with
    the reason. Without keys you see **demo templates** to try Simulate mode.
@@ -179,8 +182,9 @@ the name, language and text exactly from MSG91. The MSG91 request format lives i
 - **Serious errors stop the campaign at once:** invalid token, template paused or missing, account restricted, spam
   limit, payment problem. Sending also stops if the first 5 messages fail the same way, or after 20 failures in a row.
 - **No duplicates.** If WhatsApp doesn't answer (connection dropped, timeout), the message may or may not have gone
-  out, so it's marked **unknown** and never retried automatically. Every live send is written to
-  `data/whatsapp-sent.jsonl` as it happens, so even after a crash a re-run skips people already messaged.
+  out, so it's marked **unknown** and never retried automatically. Every live message is written to
+  `data/whatsapp-sent.jsonl` (and saved to disk) **before** it is sent, and its outcome after. So even if the app or
+  the computer crashes mid-send, a re-run skips everyone who was, or may have been, messaged.
 - **Marketing templates** are moving to Meta's Marketing Messages API. If Meta answers error 131063, the app switches
   marketing templates to the new endpoint by itself (`WHATSAPP_MARKETING_ENDPOINT`).
 - "Accepted" means WhatsApp took the message. Whether it was delivered and read is shown in WhatsApp Manager, or in the
@@ -308,16 +312,33 @@ survives restarts.
 
 ```bash
 npm run dev        # server on :3000 + Vite dev server on http://localhost:5173 with hot reload
-npm test           # unit and API tests (Vitest)
-npm run typecheck
+npm run typecheck  # server, client and browser tests
+npm test           # unit, API, property and component tests (Vitest)
+npm run coverage   # the same, with coverage limits
+npm run e2e        # builds the app and runs the browser tests (Playwright)
 ```
+
+Before the first `npm run e2e`, install the test browser once with `npx playwright install chromium`.
+
+### What the tests cover
+
+- **Unit and API tests** (`server/test`, `client/src/*.test.ts*`): phone clean-up, CSV/Excel reading, both MSG91
+  APIs and Meta's request formats (pinned by golden files), the WhatsApp error table, sending engines with retries,
+  stops, cancel and crashes, the send log, skip rules, every API route and the webhook, hostile input (HTML,
+  spreadsheet formulas, forged signatures, oversized requests), and the screens' building blocks.
+- **Random-input tests** (fast-check) run thousands of generated phone numbers, CSV cells, template variables and
+  pasted lists through the code to make sure nothing breaks or gets mixed up.
+- **Browser tests** (`e2e/`) drive the real app in Chromium against mock MSG91 and Meta servers: every SMS and
+  WhatsApp path (including typed contacts, retries, failures, Stop sending, "Send to the rest", delivery receipts,
+  daily limits and opt-outs), Ctrl+C and crash recovery without duplicate messages, 50,000 contacts, and an
+  accessibility and phone-width check of every screen in light and dark mode. No real messages are ever sent.
 
 ```
 server/src/
   index.ts                    starts the server, clean shutdown
   app.ts, http.ts             Express app, error handling, Host-header check
   config.ts                   reads and checks .env
-  routes/uploads.ts           file upload, contact check, skipped-rows CSV (shared)
+  routes/uploads.ts           file upload, typed contacts, contact check, skipped-rows CSV (shared)
   routes/campaigns.ts         SMS: test send, start / status / cancel / report
   services/parseContacts.ts   CSV (papaparse) and XLSX (exceljs) reading
   services/phone.ts           phone number clean-up and validation
@@ -330,12 +351,16 @@ server/src/
     errors.ts                 WhatsApp error codes → retry / wait / fail / stop
     providers/                Meta Cloud API, MSG91 WhatsApp, simulated
     rateLimiter.ts, runner.ts sending engine
-    ledger.ts, plan.ts        send log, opt-outs, skip rules
+    ledger.ts, plan.ts        write-ahead send log, opt-outs, skip rules
     media.ts                  header image/PDF upload or link
     routes.ts, webhook.ts     /api/whatsapp and /webhooks/whatsapp
 client/src/
   App.tsx                     SMS | WhatsApp switch
-  steps/                      Upload and Contacts (shared)
+  steps/                      Add contacts (file or typed) and Check contacts (shared)
   channels/sms/               SMS wizard
   channels/whatsapp/          WhatsApp wizard, preview, formatting
+e2e/
+  tests/                      browser scenarios
+  mocks/                      mock MSG91 and Meta servers
+  helpers/                    starts the built app on a free port with its own data folders
 ```
