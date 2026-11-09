@@ -181,16 +181,14 @@ export class WaCampaignStore {
     };
 
     /** `countIt` is false for the 2nd+ contact of a failed bulk request: the breaker counts requests, not contacts. */
-    const fail = (r: WaRecipient, err: WaApiError, countIt = true) => {
+    const fail = (r: WaRecipient, err: WaApiError, attemptId: string | undefined, countIt = true) => {
       r.state = err.info.ambiguous ? "unknown" : "failed";
       r.reason = err.message;
       r.errorCode = err.info.code;
       r.errorAction = err.info.action;
       r.at = new Date(clock.now()).toISOString();
-      if (err.info.ambiguous && live) {
-        // It may have been sent: count it, so a re-run doesn't message this person twice.
-        o.ledger?.recordSend({ number: r.number, template: campaign.template.name, state: "unknown", campaignId: campaign.id });
-      }
+      // "unknown" still counts as sent, so a re-run doesn't message this person twice.
+      if (attemptId) o.ledger?.recordResult(attemptId, err.info.ambiguous ? "unknown" : "failed");
       if (err.info.action === "stop") stop(err.message);
       if (!countIt) return;
       consecutiveFailures++;
@@ -205,20 +203,19 @@ export class WaCampaignStore {
       }
     };
 
-    const handle = (results: ItemResult[], retry: number[]): number => {
+    const handle = (results: ItemResult[], retry: number[], attemptIds: Map<number, string>): number => {
       let waitMs = 0;
       let countedThisRequest = false;
       for (const result of results) {
         const r = campaign.recipients[result.index]!;
+        const attemptId = attemptIds.get(result.index);
         if (result.ok) {
           r.state = "accepted";
           r.messageId = result.messageId;
           r.reason = undefined;
           r.at = new Date(clock.now()).toISOString();
           if (result.messageId) this.byMessageId.set(result.messageId, r);
-          if (live) {
-            o.ledger?.recordSend({ number: r.number, template: campaign.template.name, state: "accepted", messageId: result.messageId, campaignId: campaign.id });
-          }
+          if (attemptId) o.ledger?.recordResult(attemptId, "accepted", result.messageId);
           consecutiveFailures = 0;
           anySuccess = true;
           continue;
@@ -228,10 +225,11 @@ export class WaCampaignStore {
         const retries = info.action === "retry" ? retryDelays.length : info.action === "retry_later" ? retryLaterTries : 0;
         if (!info.ambiguous && r.attempts <= retries && !halted()) {
           r.reason = result.error.message;
+          if (attemptId) o.ledger?.recordResult(attemptId, "failed");
           retry.push(result.index);
           waitMs = Math.max(waitMs, info.action === "retry_later" ? retryLaterMs : retryDelays[r.attempts - 1]!);
         } else {
-          fail(r, result.error, !chunked || !countedThisRequest);
+          fail(r, result.error, attemptId, !chunked || !countedThisRequest);
           countedThisRequest = true;
         }
       }
@@ -248,6 +246,20 @@ export class WaCampaignStore {
           items: pending.map((i) => ({ index: i, to: campaign.recipients[i]!.number, values: campaign.recipients[i]!.values })),
         };
         campaign.samplePayload ??= safePreview(provider, batch);
+        // Log each message before it leaves, so even a crash mid-send can't lead to a second message.
+        let attemptIds = new Map<number, string>();
+        if (live && o.ledger) {
+          try {
+            const ids = await o.ledger.recordAttempts(
+              pending.map((i) => ({ number: campaign.recipients[i]!.number, template: campaign.template.name, campaignId: campaign.id })),
+            );
+            attemptIds = new Map(pending.map((i, k) => [i, ids[k]!]));
+          } catch (err) {
+            for (const i of pending) campaign.recipients[i]!.attempts--;
+            stop(`Stopped: couldn't write the send log (${err instanceof Error ? err.message : String(err)}), so nothing more was sent, to avoid duplicates.`);
+            return;
+          }
+        }
         let results: ItemResult[];
         try {
           results = await provider.send(batch);
@@ -259,7 +271,7 @@ export class WaCampaignStore {
           results = pending.map((index) => ({ index, ok: false, error }));
         }
         const retry: number[] = [];
-        const waitMs = handle(results, retry);
+        const waitMs = handle(results, retry, attemptIds);
         campaign.rate = limiter.currentRate() * provider.maxPerRequest;
         pending = retry;
         if (pending.length > 0) {

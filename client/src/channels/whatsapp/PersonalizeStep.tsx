@@ -305,7 +305,7 @@ function PreflightSummary({ preflight, checking }: { preflight: Preflight; check
       {preflight.skippedCount > 0 && (
         <details className="hint">
           <summary>See skipped contacts</summary>
-          <div className="table-wrap short">
+          <div className="table-wrap short" tabIndex={0} role="region" aria-label="Skipped contacts">
             <table className="table compact">
               <thead>
                 <tr>

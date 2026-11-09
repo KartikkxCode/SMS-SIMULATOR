@@ -47,13 +47,20 @@ export function WaSendStep(props: Props) {
     if (!campaignId) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let stopped = false;
+    let finishedOnce = false;
     const poll = async () => {
       try {
         const c = await waApi.campaign(campaignId);
         if (stopped) return;
         setCampaign(c);
-        if (c.status === "running") timer = setTimeout(poll, 1000);
-        else props.onConfigChanged();
+        if (c.status === "running") {
+          timer = setTimeout(poll, 1000);
+          return;
+        }
+        if (!finishedOnce) props.onConfigChanged();
+        finishedOnce = true;
+        // Delivery receipts keep arriving after sending ends, so keep the counts fresh.
+        if (config.webhookEnabled && c.mode === "live") timer = setTimeout(poll, 5000);
       } catch (err) {
         if (!stopped) setError((err as Error).message);
       }
@@ -314,7 +321,7 @@ function Progress(props: {
         {simulate && " · nothing was sent and nothing was charged"}
       </p>
 
-      <div className="progress" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+      <div className="progress" role="progressbar" aria-label="Sending progress" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
         <div className={`progress-bar ${c.status}`} style={{ width: `${percent}%` }} />
       </div>
       <p className="small muted">
@@ -359,7 +366,7 @@ function Progress(props: {
       {c.errors.length > 0 && (
         <>
           <h3>What went wrong</h3>
-          <div className="table-wrap short">
+          <div className="table-wrap short" tabIndex={0} role="region" aria-label="What went wrong">
             <table className="table compact">
               <thead>
                 <tr>
@@ -385,7 +392,7 @@ function Progress(props: {
       {c.samplePayload !== undefined && (
         <details className="hint" open={simulate}>
           <summary>{simulate ? "Request that would be sent" : "Request sent"} (first message)</summary>
-          <pre className="code">{JSON.stringify(c.samplePayload, null, 2)}</pre>
+          <pre className="code" tabIndex={0} aria-label="Request body">{JSON.stringify(c.samplePayload, null, 2)}</pre>
         </details>
       )}
 

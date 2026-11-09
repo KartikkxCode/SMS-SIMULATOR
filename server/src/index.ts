@@ -23,6 +23,12 @@ const campaigns = new CampaignStore({
   reportsDir: config.reportsDir,
 });
 const ledger = await new WaLedger(config.dataDir).load();
+if (ledger.unconfirmedAtStart > 0) {
+  console.log(
+    `  Note: ${ledger.unconfirmedAtStart} WhatsApp message(s) from the last run got no answer before the app stopped.` +
+      " They count as sent, so nobody is messaged twice.",
+  );
+}
 const whatsapp = {
   ledger,
   providers: new WaProviders(config.whatsapp),

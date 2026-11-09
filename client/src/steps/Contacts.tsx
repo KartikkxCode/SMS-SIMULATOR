@@ -83,7 +83,7 @@ export function ContactsStep({ upload, column, onColumnChange, contacts, onConta
       </div>
 
       <h3>File preview</h3>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0} role="region" aria-label="File preview">
         <table className="table">
           <thead>
             <tr>
@@ -114,7 +114,7 @@ export function ContactsStep({ upload, column, onColumnChange, contacts, onConta
       {contacts && problemCount > 0 && (
         <>
           <h3>Skipped rows</h3>
-          <div className="table-wrap short">
+          <div className="table-wrap short" tabIndex={0} role="region" aria-label="Skipped rows">
             <table className="table compact">
               <thead>
                 <tr>

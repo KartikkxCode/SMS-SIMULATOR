@@ -47,6 +47,8 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     res.status(err.code === "LIMIT_FILE_SIZE" ? 413 : 400).json({ error: message });
   } else if (err?.type === "entity.parse.failed") {
     res.status(400).json({ error: "The request body isn't valid JSON." });
+  } else if (err?.type === "entity.too.large") {
+    res.status(413).json({ error: "The request is too large. Send fewer contacts at a time." });
   } else {
     console.error(err);
     res.status(500).json({ error: "Something went wrong on the server. Check the terminal for details." });
