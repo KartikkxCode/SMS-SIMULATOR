@@ -240,7 +240,7 @@ function Progress(props: {
       </h2>
       {c.mode === "simulate" && <p className="muted">Simulate mode: no SMS were sent and no credits were used.</p>}
 
-      <div className="progress" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+      <div className="progress" role="progressbar" aria-label="Sending progress" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
         <div className={`progress-bar ${c.status}`} style={{ width: `${percent}%` }} />
       </div>
       <p className="small muted">
@@ -272,7 +272,7 @@ function Progress(props: {
       )}
 
       <h3>Batches</h3>
-      <div className="table-wrap short">
+      <div className="table-wrap short" tabIndex={0} role="region" aria-label="Batches">
         <table className="table compact">
           <thead>
             <tr>
@@ -302,7 +302,7 @@ function Progress(props: {
       {c.samplePayload && (
         <details className="hint" open={c.mode === "simulate"}>
           <summary>{c.mode === "simulate" ? "Request that would be sent to MSG91" : "Request sent to MSG91"} (batch 1)</summary>
-          <pre className="code">
+          <pre className="code" tabIndex={0} aria-label="Request sent to MSG91">
             {`POST https://control.msg91.com/api/v5/flow\nauthkey: ••••••••\n\n${JSON.stringify(c.samplePayload, null, 2)}`}
           </pre>
           {c.samplePayloadRecipients > c.samplePayload.recipients.length && (

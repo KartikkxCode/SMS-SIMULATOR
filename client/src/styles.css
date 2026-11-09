@@ -8,14 +8,16 @@
   --primary: #2563eb;
   --primary-text: #ffffff;
   --primary-soft: #e3ecfe;
-  --good: #15803d;
+  --good: #146c34;
   --good-soft: #e5f6eb;
   --bad: #c62828;
   --bad-soft: #fdeaea;
   --warn: #a15c00;
   --warn-soft: #fdf2df;
   --bubble: #e9edf3;
-  --wa-green: #0b7a43;
+  --wa-green: #0a6e3c;
+  --wa-topbar: #0a6e3c;
+  --wa-topbar-text: #ffffff;
   --wa-chat-bg: #efeae2;
   --wa-bubble: #ffffff;
   --wa-link: #027eb5;
@@ -43,6 +45,8 @@
     --warn-soft: #3a2e12;
     --bubble: #263146;
     --wa-green: #34c77b;
+    --wa-topbar: #1f2c34;
+    --wa-topbar-text: #e9edef;
     --wa-chat-bg: #0b141a;
     --wa-bubble: #1f2c34;
     --wa-link: #53bdeb;
@@ -490,6 +494,12 @@ textarea {
   border-radius: 8px;
   max-height: 360px;
 }
+/* Scroll areas can be focused so keyboard users can scroll them. */
+.table-wrap:focus-visible,
+.code:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .table-wrap.short {
   max-height: 260px;
 }
@@ -731,6 +741,16 @@ textarea {
   box-shadow: 0 10px 40px rgb(0 0 0 / 30%);
 }
 
+/* People who turn off animations in their system settings get none here either. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 /* ---------- Shared bits used by the WhatsApp section ---------- */
 .note {
   background: var(--warn-soft);
@@ -906,8 +926,8 @@ textarea {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--wa-green);
-  color: #fff;
+  background: var(--wa-topbar);
+  color: var(--wa-topbar-text);
   font-weight: 600;
   font-size: 0.9rem;
 }
