@@ -1,4 +1,4 @@
-import { fillTemplate, smsInfo, templateVariables } from "../sms.ts";
+import { fillTemplate, smsInfo, templateVariables } from "./sms.ts";
 
 export type Compose = {
   templateId: string;

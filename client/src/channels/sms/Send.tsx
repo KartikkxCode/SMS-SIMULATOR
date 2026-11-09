@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type AppConfig, type CampaignView, type SendMode, type UploadInfo } from "../api.ts";
-import { fillTemplate, smsInfo } from "../sms.ts";
+import { api, type AppConfig, type CampaignView, type SendMode, type UploadInfo } from "../../api.ts";
+import { fillTemplate, smsInfo } from "./sms.ts";
 import { usedVariables, type Compose } from "./Compose.tsx";
 
 type Props = {

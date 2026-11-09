@@ -70,7 +70,7 @@ export function ContactsStep({ upload, column, onColumnChange, contacts, onConta
       <div className="stats" aria-live="polite" aria-busy={loading}>
         <div className="stat good">
           <span className="value">{contacts ? contacts.validCount.toLocaleString() : "…"}</span>
-          <span className="name">will receive the SMS</span>
+          <span className="name">will receive the message</span>
         </div>
         <div className="stat bad">
           <span className="value">{contacts ? contacts.invalidCount.toLocaleString() : "…"}</span>

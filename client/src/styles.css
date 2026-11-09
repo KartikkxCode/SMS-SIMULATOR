@@ -15,6 +15,10 @@
   --warn: #a15c00;
   --warn-soft: #fdf2df;
   --bubble: #e9edf3;
+  --wa-green: #0b7a43;
+  --wa-chat-bg: #efeae2;
+  --wa-bubble: #ffffff;
+  --wa-link: #027eb5;
   --radius: 12px;
   --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 16px rgb(16 24 40 / 6%);
   color-scheme: light;
@@ -38,8 +42,23 @@
     --warn: #fbbf24;
     --warn-soft: #3a2e12;
     --bubble: #263146;
+    --wa-green: #34c77b;
+    --wa-chat-bg: #0b141a;
+    --wa-bubble: #1f2c34;
+    --wa-link: #53bdeb;
     --shadow: none;
     color-scheme: dark;
+  }
+}
+
+/* The WhatsApp section uses WhatsApp green as its accent colour. */
+.channel-whatsapp {
+  --primary: var(--wa-green);
+  --primary-soft: color-mix(in srgb, var(--wa-green) 14%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  .channel-whatsapp {
+    --primary-text: #062314;
   }
 }
 
@@ -117,6 +136,42 @@ code,
 .pill-live {
   background: var(--good-soft);
   color: var(--good);
+}
+
+.channel-switch {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.channel-switch a {
+  padding: 6px 18px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+.channel-switch a.active {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+.channel-switch a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.channel-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.channel-bar p {
+  margin: 0;
 }
 
 .stepper {
